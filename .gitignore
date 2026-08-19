@@ -5,4 +5,5 @@ __pycache__/
 *.session
 *.log
 created_bots.txt
+allocator.json
 .env

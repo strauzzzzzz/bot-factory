@@ -21,6 +21,8 @@ from factory import (
     SESSIONS_DIR,
     factory_run,
     load_config,
+    load_settings,
+    save_settings,
     save_tokens,
     session_path,
 )
@@ -47,14 +49,25 @@ def log_line(msg):
 
 def read_config():
     with CONFIG_LOCK:
-        return json.loads((BASE_DIR / "config.json").read_text(encoding="utf-8"))
+        return load_config(strict=False)
 
 
-def write_config(cfg):
+def save_ui_settings(fields):
     with CONFIG_LOCK:
-        (BASE_DIR / "config.json").write_text(
-            json.dumps(cfg, ensure_ascii=False, indent=2), encoding="utf-8"
-        )
+        st = load_settings()
+        st.update(fields)
+        save_settings(st)
+
+
+def get_phones():
+    return list(read_config().get("phone_numbers") or [])
+
+
+def set_phones(phones):
+    with CONFIG_LOCK:
+        st = load_settings()
+        st["phone_numbers"] = phones
+        save_settings(st)
 
 
 class LoginSession:
@@ -271,7 +284,7 @@ def api_config_get():
 
 @app.route("/api/config", methods=["POST"])
 def api_config_set():
-    cfg = read_config()
+    fields = {}
     for key in (
         "bot_name",
         "username_base",
@@ -281,9 +294,10 @@ def api_config_set():
         "about_text",
     ):
         if key in request.json:
-            cfg[key] = str(request.json[key]).strip()
-    write_config(cfg)
-    log_line("config saved")
+            fields[key] = str(request.json[key]).strip()
+    if fields:
+        save_ui_settings(fields)
+        log_line("settings saved")
     return jsonify({"ok": True})
 
 
@@ -311,20 +325,20 @@ def api_phones_add():
         phone = "+" + phone
     if not phone[1:].isdigit() or len(phone[1:]) < 5:
         return jsonify({"ok": False, "error": "invalid phone number"}), 400
-    cfg = read_config()
-    if phone not in cfg["phone_numbers"]:
-        cfg["phone_numbers"].append(phone)
-        write_config(cfg)
+    phones = get_phones()
+    if phone not in phones:
+        phones.append(phone)
+        set_phones(phones)
         log_line(f"added {phone}")
     return jsonify({"ok": True})
 
 
 @app.route("/api/phones/<path:phone>", methods=["DELETE"])
 def api_phones_del(phone):
-    cfg = read_config()
-    if phone in cfg["phone_numbers"]:
-        cfg["phone_numbers"].remove(phone)
-        write_config(cfg)
+    phones = get_phones()
+    if phone in phones:
+        phones.remove(phone)
+        set_phones(phones)
         log_line(f"removed {phone}")
     return jsonify({"ok": True})
 

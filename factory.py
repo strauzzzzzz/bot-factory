@@ -27,7 +27,35 @@ except Exception:
     pass
 
 
-def load_config():
+SETTINGS_KEYS = (
+    "phone_numbers",
+    "admin_ids",
+    "bot_name",
+    "username_base",
+    "main_bot_username",
+    "profile_pic",
+    "description",
+    "about_text",
+)
+
+
+def load_settings():
+    p = DATA_DIR / "settings.json"
+    if p.exists():
+        try:
+            return json.loads(p.read_text(encoding="utf-8"))
+        except Exception:
+            return {}
+    return {}
+
+
+def save_settings(settings):
+    (DATA_DIR / "settings.json").write_text(
+        json.dumps(settings, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
+
+
+def load_config(strict=True):
     cfg_path = BASE_DIR / "config.json"
     cfg = json.loads(cfg_path.read_text(encoding="utf-8"))
     env_map = {
@@ -48,10 +76,15 @@ def load_config():
         cfg["admin_ids"] = [int(x.strip()) for x in os.getenv("ADMIN_IDS").split(",") if x.strip()]
     if os.getenv("PHONE_NUMBERS"):
         cfg["phone_numbers"] = [p.strip() for p in os.getenv("PHONE_NUMBERS").split(",") if p.strip()]
-    if not cfg.get("api_id") or not cfg.get("api_hash"):
-        raise SystemExit("config.json: set api_id and api_hash (from my.telegram.org)")
-    if not isinstance(cfg.get("phone_numbers"), list) or not cfg["phone_numbers"]:
-        raise SystemExit("config.json: phone_numbers must be a non-empty list, e.g. ['+15551234567', ...]")
+    st = load_settings()
+    for key in SETTINGS_KEYS:
+        if key in st:
+            cfg[key] = st[key]
+    if strict:
+        if not cfg.get("api_id") or not cfg.get("api_hash"):
+            raise SystemExit("config.json: set api_id and api_hash (from my.telegram.org)")
+        if not isinstance(cfg.get("phone_numbers"), list) or not cfg["phone_numbers"]:
+            raise SystemExit("config.json: phone_numbers must be a non-empty list, e.g. ['+15551234567', ...]")
     return cfg
 
 

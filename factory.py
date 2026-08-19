@@ -277,7 +277,7 @@ async def create_bot_for_account(client, cfg, allocator, progress=None, should_c
     progress(f"BotFather: {reply.message[:120]}")
 
     token, used_username = None, None
-    for _ in range(300):
+    for _ in range(25):
         if should_cancel():
             progress("cancel requested - stopping")
             break

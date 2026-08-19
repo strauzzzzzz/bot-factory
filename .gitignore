@@ -1,0 +1,7 @@
+config.json
+sessions/
+__pycache__/
+*.session
+*.log
+created_bots.txt
+.env

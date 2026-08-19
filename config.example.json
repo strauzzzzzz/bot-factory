@@ -1,0 +1,13 @@
+{
+  "api_id": 0,
+  "api_hash": "PASTE_YOUR_API_HASH_HERE",
+  "phone_numbers": [],
+  "bot_name": "CryptoQR | Payment",
+  "username_base": "PrimerBota",
+  "main_bot_username": "CryptoQR_Robot",
+  "profile_pic": "profile.jpg",
+  "description": "Secure crypto payments via QR. All payments, help and support happen in the main bot: [@CryptoQR_Robot](https://t.me/CryptoQR_Robot)",
+  "about_text": "CryptoQR | Payment - QR crypto payments. Main bot: @CryptoQR_Robot",
+  "control_bot_token": "",
+  "admin_ids": []
+}

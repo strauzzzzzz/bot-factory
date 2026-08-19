@@ -1045,5 +1045,6 @@ async function submitPw() {
 if __name__ == "__main__":
     threading.Thread(target=bot_respond_worker, daemon=True).start()
     log_line(f"webapp starting on port {PORT}")
+    log_line(f"DATA_DIR={DATA_DIR} | sessions={SESSIONS_DIR} | created_bots={DATA_DIR / 'created_bots.txt'}")
     host = "0.0.0.0" if os.environ.get("PORT") else "127.0.0.1"
     app.run(host=host, port=PORT, threaded=True)

@@ -265,9 +265,11 @@ async def select_bot(reply_msg, username):
     return True
 
 
-async def create_bot_for_account(client, cfg, allocator, progress=None):
+async def create_bot_for_account(client, cfg, allocator, progress=None, should_cancel=None):
     if progress is None:
         progress = lambda msg: log(msg)
+    if should_cancel is None:
+        should_cancel = lambda: False
 
     reply = await safe_cmd(client, "/newbot", "/newbot")
     progress(f"BotFather: {reply.message[:120]}")
@@ -276,6 +278,9 @@ async def create_bot_for_account(client, cfg, allocator, progress=None):
 
     token, used_username = None, None
     for _ in range(300):
+        if should_cancel():
+            progress("cancel requested - stopping")
+            break
         username = allocator.next_candidate()
         reply = await safe_cmd(client, username, f"username @{username}")
         low = reply.message.lower()
@@ -290,9 +295,8 @@ async def create_bot_for_account(client, cfg, allocator, progress=None):
         progress(f"@{username} taken/unavailable, trying next...")
         continue
     if token is None:
-        raise RuntimeError(
-            f"no free username found for base '{allocator.base}' after 300 tries"
-        )
+        progress("cancel requested - stopping")
+        raise RuntimeError(f"stopped or no free username found for base '{allocator.base}'")
 
     pic = BASE_DIR / cfg["profile_pic"]
     if pic.exists():
@@ -356,7 +360,9 @@ async def factory_run(cfg, phones, bases, progress=None, should_cancel=None):
                 continue
             progress(f"account {phone}: creating bot...")
             allocator = allocators[normalize_base(bases[i])]
-            username, token = await create_bot_for_account(client, cfg, allocator, progress=progress)
+            username, token = await create_bot_for_account(
+                client, cfg, allocator, progress=progress, should_cancel=should_cancel
+            )
             rows.append((username, token))
             save_tokens([(username, token)])
             save_allocators(allocators)

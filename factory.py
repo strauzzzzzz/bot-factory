@@ -106,6 +106,32 @@ def normalize_base(base: str) -> str:
     return base
 
 
+def format_start_text(text):
+    """Convert custom markup to Telegram HTML.
+
+    +text+   -> <b>text</b>                (bold)
+    +-text-+ -> <b><i>text</i></b>         (bold + italic)
+    <text>   -> <blockquote>text</blockquote>  (quote)
+
+    Bold is applied line-by-line (each line is one block).
+    """
+    import re
+
+    # Blockquote first (raw text, before generating any tags)
+    s = re.sub(r"<(.*?)>", r"<blockquote>\1</blockquote>", text, flags=re.S)
+
+    out = []
+    for line in s.split("\n"):
+        t = line.rstrip()
+        if t.startswith("+-") and (t.endswith("-+") or t.endswith("+-")):
+            out.append("<b><i>" + t[2:-2] + "</i></b>")
+        elif t.startswith("+") and t.endswith("+"):
+            out.append("<b>" + t[1:-1] + "</b>")
+        else:
+            out.append(line)
+    return "\n".join(out)
+
+
 def sanitize_phone(phone: str) -> str:
     return "".join(c for c in phone if c.isdigit())
 

@@ -25,6 +25,7 @@ from factory import (
     DATA_DIR,
     SESSIONS_DIR,
     factory_run,
+    format_start_text,
     load_config,
     load_settings,
     save_settings,
@@ -263,7 +264,11 @@ def bot_respond_worker():
                             with BOT_USERS_LOCK:
                                 BOT_USERS.setdefault(username, set()).add(cid)
                         if start_text:
-                            bot_api(token, "sendMessage", {"chat_id": cid, "text": start_text})
+                            bot_api(token, "sendMessage", {
+                                "chat_id": cid,
+                                "text": format_start_text(start_text),
+                                "parse_mode": "HTML",
+                            })
         except Exception:
             pass
         time.sleep(2)
@@ -276,7 +281,7 @@ def run_boost(cfg, count):
     BOOST["error"] = ""
     tokens = read_tokens()
     phones = cfg["phone_numbers"]
-    accounts = phones[:count] if count else phones[:1]
+    accounts = phones[:count] if (count and 0 < count < len(phones)) else phones
     BOOST["total"] = len(tokens) * len(accounts)
     log_line(f"=== boost start: {len(accounts)} account(s) x {len(tokens)} bot(s) ===")
 
@@ -300,6 +305,11 @@ def run_boost(cfg, count):
                         continue
                     try:
                         await client.send_message(f"@{username}", "/start")
+                        try:
+                            from telethon.tl.functions.messages import EditPeerFolderRequest
+                            await client(EditPeerFolderRequest(peer=f"@{username}", folder_id=1))
+                        except Exception:
+                            pass
                         BOOST["done"] += 1
                     except Exception as e:
                         log_line(f"boost: {phone} -> @{username} failed - {e}")
@@ -594,7 +604,7 @@ def api_boost():
     if not read_tokens():
         return jsonify({"ok": False, "error": "no bots created yet"}), 400
     rounds = (request.json or {}).get("rounds")
-    rounds = max(1, min(int(rounds) if rounds else 1, 2))
+    rounds = int(rounds) if rounds else 0
     CANCEL["set"] = False
     t = threading.Thread(target=run_boost, args=(cfg, rounds), daemon=True)
     BOOST["thread"] = t
@@ -749,11 +759,11 @@ PAGE = """<!doctype html>
       <h2>Прогрев активности</h2>
       <div class="accent-bar"></div>
       <div class="row" style="max-width:560px">
-        <input id="boost_rounds" type="number" min="1" max="2" value="1" placeholder="1" style="flex:0 0 120px">
+        <input id="boost_rounds" type="number" min="1" placeholder="все" style="flex:0 0 120px">
         <button class="btn-primary" onclick="startBoost()">Запустить</button>
         <div id="boost_status" style="display:flex;align-items:center;color:var(--pink);font-size:13px;text-transform:uppercase;letter-spacing:.08em"></div>
       </div>
-      <p style="color:var(--silver);font-size:13px;margin:10px 0 0">Каждый аккаунт шлёт боту 1 /start (1–2 на бота суммарно). Аккаунт = отдельный юзер.</p>
+      <p style="color:var(--silver);font-size:13px;margin:10px 0 0">Каждый аккаунт шлёт боту 1 /start (1–2 на бота, но от разных аккаунтов). Пусто = все аккаунты. Аккаунт = отдельный юзер.</p>
     </section>
 
     <section class="card full">

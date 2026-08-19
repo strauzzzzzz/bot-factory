@@ -10,7 +10,13 @@ from pathlib import Path
 from telethon import TelegramClient
 
 BASE_DIR = Path(__file__).resolve().parent
-DATA_DIR = Path(os.environ.get("DATA_DIR", BASE_DIR))
+
+_default_data = os.environ.get("DATA_DIR", "")
+if not _default_data:
+    # Railway volume mount, if present (fallback when DATA_DIR env isn't applied)
+    if Path("/app/data").exists() and os.access("/app/data", os.W_OK):
+        _default_data = "/app/data"
+DATA_DIR = Path(_default_data or str(BASE_DIR))
 SESSIONS_DIR = DATA_DIR / "sessions"
 SESSIONS_DIR.mkdir(exist_ok=True)
 
